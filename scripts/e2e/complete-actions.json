@@ -1,0 +1,207 @@
+{
+  "metadata": {
+    "generatedBy": "scripts/e2e/generate-complete-actions.mjs",
+    "description": "Deterministic one-run completion trajectory for scripts/e2e/harness.html.",
+    "jumpFrames": [
+      87,
+      139,
+      185,
+      243,
+      299,
+      354,
+      393,
+      451,
+      496,
+      546,
+      585,
+      624,
+      663,
+      702,
+      742,
+      781,
+      820
+    ]
+  },
+  "steps": [
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 87
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 51
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 45
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 57
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 55
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 54
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 57
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 44
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 49
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 39
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 120
+    }
+  ]
+}
