@@ -37,6 +37,7 @@ export interface GameRuntime {
   stop: () => void
   render: () => void
   advanceTime: (ms: number) => void
+  setOrientationBlocked: (blocked: boolean) => void
   renderGameToText: () => string
   dispose: () => void
 }
@@ -102,6 +103,7 @@ export const createGameRuntime = ({
   let frameHandle = 0
   let lastTimestamp = 0
   let accumulator = 0
+  let orientationBlocked = false
 
   const syncCameraAndProgress = () => {
     state.cameraX = clamp(
@@ -352,7 +354,9 @@ export const createGameRuntime = ({
         break
       case 'running':
       case 'practice':
-        updateGameplay(dt, controls)
+        if (!orientationBlocked) {
+          updateGameplay(dt, controls)
+        }
         break
       case 'paused':
         if (controls.restartPressed) {
@@ -476,6 +480,7 @@ export const createGameRuntime = ({
           : Number(state.bestCompletionSeconds.toFixed(2)),
       crashCount: state.crashCount,
       progressPercent: Number(state.progressPercent.toFixed(2)),
+      orientationBlocked,
       speed: Number((BASE_SCROLL_SPEED * state.speedMultiplier).toFixed(2)),
       player: {
         x: Number(state.player.x.toFixed(2)),
@@ -505,11 +510,16 @@ export const createGameRuntime = ({
     audio.dispose()
   }
 
+  const setOrientationBlocked = (blocked: boolean) => {
+    orientationBlocked = blocked
+  }
+
   return {
     start,
     stop,
     render,
     advanceTime,
+    setOrientationBlocked,
     renderGameToText,
     dispose,
   }

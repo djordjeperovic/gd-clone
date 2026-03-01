@@ -16,6 +16,7 @@ This project implements a single-level auto-runner where the player jumps over s
 - Speed-change triggers and jump-orb mechanics
 - Lightweight synthesized SFX (no external audio assets required)
 - Deterministic test hooks for automation (`window.advanceTime`, `window.render_game_to_text`)
+- Mobile landscape handling with portrait pause overlay, safe-area-aware viewport fit, and letterboxed 800x450 rendering
 - Unit tests for collision and audio behavior
 - Deterministic Playwright-based e2e completion test
 
@@ -27,6 +28,13 @@ This project implements a single-level auto-runner where the player jumps over s
 - `P`: toggle practice mode
 - `Esc`: pause/resume
 - `F`: toggle fullscreen
+
+## Mobile Landscape Behavior
+
+- Internal gameplay resolution remains fixed at `800x450`; canvas display scales uniformly to fit without cropping or stretching.
+- On likely-phone portrait viewports, a rotate-to-landscape overlay is shown and gameplay simulation is paused.
+- Rotating back to landscape hides the overlay and resumes simulation automatically.
+- On phone user gestures (`tap/click` and `Space`), the app makes a best-effort attempt to enter fullscreen and lock landscape orientation (without crashing if unsupported/denied).
 
 ## Quick Start
 
