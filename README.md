@@ -104,6 +104,14 @@ npx playwright install chromium
 - This project does **not** grant rights to third-party IP (names, logos, music, level data, or assets from commercial games).
 - See [`NOTICE`](./NOTICE) for trademark and attribution notes.
 
+## GitHub Pages Deployment
+
+- Workflow: `.github/workflows/pages.yml`
+- Triggers: push to `main`, plus manual `workflow_dispatch`
+- Build/deploy flow: `npm ci` -> compute Vite `base` from `GITHUB_REPOSITORY` -> `npm run build -- --base=...` -> upload `dist` -> deploy to Pages
+- URL pattern for project sites: `https://<owner>.github.io/<repo>/`
+- URL pattern for user/org sites (`<owner>.github.io` repo): `https://<owner>.github.io/`
+
 ## Publishing Checklist
 
 - Verify the selected license works for your distribution goals.
