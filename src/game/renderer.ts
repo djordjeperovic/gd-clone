@@ -1,6 +1,12 @@
 import { INTERNAL_HEIGHT, INTERNAL_WIDTH } from './constants'
 import { isVisibleInCamera } from './collision'
-import type { GameMode, GameState, LevelData, RunMode } from './types'
+import type {
+  GameMode,
+  GameState,
+  LevelData,
+  ParticleState,
+  RunMode,
+} from './types'
 
 interface RenderArgs {
   ctx: CanvasRenderingContext2D
@@ -242,6 +248,67 @@ const drawTriggers = (
   }
 }
 
+type ParticleLayer = 'back' | 'front'
+
+const getParticleAlpha = (particle: ParticleState): number => {
+  const lifeProgress = particle.age / particle.lifetime
+  const remainingLife = Math.max(0, 1 - lifeProgress)
+  return particle.opacity * remainingLife * remainingLife
+}
+
+const drawParticles = (
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  layer: ParticleLayer,
+): void => {
+  for (const particle of state.particles.items) {
+    const isTrailLayer = particle.kind === 'trail'
+    if (layer === 'back' && !isTrailLayer) {
+      continue
+    }
+    if (layer === 'front' && isTrailLayer) {
+      continue
+    }
+
+    const screenX = particle.x - state.cameraX
+    if (
+      screenX < -40 ||
+      screenX > INTERNAL_WIDTH + 40 ||
+      particle.y < -40 ||
+      particle.y > INTERNAL_HEIGHT + 40
+    ) {
+      continue
+    }
+
+    const alpha = getParticleAlpha(particle)
+    if (alpha <= 0.01) {
+      continue
+    }
+
+    ctx.save()
+    ctx.globalAlpha = alpha
+    ctx.fillStyle = particle.color
+
+    if (particle.shape === 'circle') {
+      ctx.beginPath()
+      ctx.arc(screenX, particle.y, particle.size * 0.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+      continue
+    }
+
+    ctx.translate(screenX, particle.y)
+    ctx.rotate(particle.rotation)
+    ctx.fillRect(
+      -particle.size * 0.5,
+      -particle.size * 0.5,
+      particle.size,
+      particle.size,
+    )
+    ctx.restore()
+  }
+}
+
 const drawPlayer = (ctx: CanvasRenderingContext2D, state: GameState): void => {
   const player = state.player
   const centerX = player.x - state.cameraX + player.size / 2
@@ -357,7 +424,11 @@ export const renderFrame = ({ ctx, state, level }: RenderArgs): void => {
   drawBackground(ctx, state.cameraX)
   drawGroundAndObjects(ctx, state, level)
   drawTriggers(ctx, state, level)
-  drawPlayer(ctx, state)
+  drawParticles(ctx, state, 'back')
+  if (state.mode !== 'dead') {
+    drawPlayer(ctx, state)
+  }
+  drawParticles(ctx, state, 'front')
   drawHud(ctx, state)
   drawModeOverlay(ctx, state)
 }

@@ -57,6 +57,33 @@ export interface PracticeCheckpoint {
   speedMultiplier: number
 }
 
+export type ParticleKind = 'trail' | 'dust' | 'spark' | 'shard'
+export type ParticleShape = 'square' | 'circle'
+
+export interface ParticleState {
+  kind: ParticleKind
+  shape: ParticleShape
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  age: number
+  lifetime: number
+  opacity: number
+  color: string
+  rotation: number
+  spin: number
+  drag: number
+  gravityScale: number
+}
+
+export interface ParticleSystemState {
+  items: ParticleState[]
+  trailTimer: number
+  rngState: number
+}
+
 export interface GameState {
   mode: GameMode
   currentRunMode: RunMode
@@ -75,6 +102,7 @@ export interface GameState {
   activatedCheckpointTriggers: Set<string>
   activatedSpeedTriggers: Set<string>
   activatedInteractives: Set<string>
+  particles: ParticleSystemState
 }
 
 export interface InputSnapshot {

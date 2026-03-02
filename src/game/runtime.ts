@@ -28,6 +28,15 @@ import {
 import { AudioSystem } from './audio'
 import { InputController } from './input'
 import { levelData } from './levelData'
+import {
+  createParticleSystem,
+  emitCrashShatter,
+  emitJumpDust,
+  emitOrbSparks,
+  resetParticleSystem,
+  tickTrailEmitter,
+  updateParticles,
+} from './particles'
 import { renderFrame } from './renderer'
 import type { GameState, InputSnapshot, LevelObject, RunMode } from './types'
 
@@ -66,6 +75,12 @@ const typedObjects = {
   ),
 }
 
+type JumpResult =
+  | { kind: 'none' }
+  | { kind: 'jump' }
+  | { kind: 'orb'; orb: LevelObject }
+  | { kind: 'dash'; orb: LevelObject }
+
 const initialPlayerY = getGroundTopAtX(START_X, typedObjects.solids, GROUND_Y) - PLAYER_SIZE
 
 const createInitialState = (): GameState => ({
@@ -94,6 +109,7 @@ const createInitialState = (): GameState => ({
   activatedCheckpointTriggers: new Set<string>(),
   activatedSpeedTriggers: new Set<string>(),
   activatedInteractives: new Set<string>(),
+  particles: createParticleSystem(),
 })
 
 export const createGameRuntime = ({
@@ -139,6 +155,7 @@ export const createGameRuntime = ({
     state.activatedCheckpointTriggers.clear()
     state.activatedSpeedTriggers.clear()
     state.activatedInteractives.clear()
+    resetParticleSystem(state.particles)
     syncCameraAndProgress()
   }
 
@@ -190,6 +207,7 @@ export const createGameRuntime = ({
     state.deathTimer = 0
     state.crashCount += 1
     audio.playCrash()
+    emitCrashShatter(state.particles, state.player)
     state.player.vx = 0
     state.player.vy = 0
   }
@@ -202,28 +220,28 @@ export const createGameRuntime = ({
     return true
   }
 
-  const tryJump = (): 'none' | 'jump' | 'orb' | 'dash' => {
+  const tryJump = (): JumpResult => {
     const dashOrb = findActivatableOrb(state.player, typedObjects.dashOrbs)
     if (dashOrb && activateInteractive(dashOrb.id)) {
       state.player.vy = DASH_ORB_VERTICAL_IMPULSE * state.gravityDirection
       state.player.grounded = false
-      return 'dash'
+      return { kind: 'dash', orb: dashOrb }
     }
 
     const jumpOrb = findActivatableOrb(state.player, typedObjects.jumpOrbs)
     if (jumpOrb && activateInteractive(jumpOrb.id)) {
       state.player.vy = ORB_JUMP_IMPULSE * state.gravityDirection
       state.player.grounded = false
-      return 'orb'
+      return { kind: 'orb', orb: jumpOrb }
     }
 
     if (state.player.grounded) {
       state.player.vy = JUMP_IMPULSE * state.gravityDirection
       state.player.grounded = false
-      return 'jump'
+      return { kind: 'jump' }
     }
 
-    return 'none'
+    return { kind: 'none' }
   }
 
   const applyAutomaticInteractions = () => {
@@ -239,6 +257,7 @@ export const createGameRuntime = ({
       state.player.vy = JUMP_PAD_IMPULSE * state.gravityDirection
       state.player.grounded = false
       audio.playJumpPad()
+      emitJumpDust(state.particles, state.player, state.gravityDirection, 'pad')
     }
   }
 
@@ -282,22 +301,25 @@ export const createGameRuntime = ({
 
     state.runElapsedSeconds += dt
 
-    let jumpKind: 'none' | 'jump' | 'orb' | 'dash' = 'none'
+    let jumpResult: JumpResult = { kind: 'none' }
     if (controls.jumpPressed) {
-      jumpKind = tryJump()
-      if (jumpKind === 'jump') {
+      jumpResult = tryJump()
+      if (jumpResult.kind === 'jump') {
         audio.playJump()
-      } else if (jumpKind === 'orb') {
+        emitJumpDust(state.particles, state.player, state.gravityDirection, 'jump')
+      } else if (jumpResult.kind === 'orb') {
         audio.playOrbJump()
-      } else if (jumpKind === 'dash') {
+        emitOrbSparks(state.particles, jumpResult.orb)
+      } else if (jumpResult.kind === 'dash') {
         audio.playDashOrb()
+        emitOrbSparks(state.particles, jumpResult.orb)
       }
     }
 
     const wasGrounded = state.player.grounded
     const previousY = state.player.y
 
-    const dashBoost = jumpKind === 'dash' ? DASH_ORB_SPEED_BOOST : 0
+    const dashBoost = jumpResult.kind === 'dash' ? DASH_ORB_SPEED_BOOST : 0
     state.player.vx = BASE_SCROLL_SPEED * state.speedMultiplier + dashBoost
     state.player.x += state.player.vx * dt
     state.player.vy += GRAVITY * state.gravityDirection * dt
@@ -315,11 +337,14 @@ export const createGameRuntime = ({
     if (state.player.grounded) {
       if (!wasGrounded) {
         state.player.rotation = snapQuarterRotation(state.player.rotation)
+        emitJumpDust(state.particles, state.player, state.gravityDirection, 'landing')
       }
       state.player.rotation = snapQuarterRotation(state.player.rotation)
     } else {
       state.player.rotation += state.player.vx * dt * 0.035 * state.gravityDirection
     }
+
+    tickTrailEmitter(state.particles, dt, state.player)
 
     applyTriggers()
 
@@ -409,6 +434,12 @@ export const createGameRuntime = ({
       case 'practice':
         if (!orientationBlocked) {
           updateGameplay(dt, controls)
+          updateParticles(
+            state.particles,
+            dt,
+            state.gravityDirection,
+            state.cameraX,
+          )
         }
         break
       case 'paused':
@@ -418,11 +449,13 @@ export const createGameRuntime = ({
         break
       case 'dead':
         state.deathTimer += dt
+        updateParticles(state.particles, dt, state.gravityDirection, state.cameraX)
         if (controls.restartPressed || state.deathTimer >= DEATH_RESTART_SECONDS) {
           restartCurrentRun()
         }
         break
       case 'complete':
+        updateParticles(state.particles, dt, state.gravityDirection, state.cameraX)
         if (controls.restartPressed) {
           restartCurrentRun()
           break
