@@ -1,11 +1,14 @@
 import {
   BASE_SCROLL_SPEED,
+  DASH_ORB_SPEED_BOOST,
+  DASH_ORB_VERTICAL_IMPULSE,
   DEATH_RESTART_SECONDS,
   FIXED_STEP_SECONDS,
   GRAVITY,
   GROUND_Y,
   INTERNAL_HEIGHT,
   INTERNAL_WIDTH,
+  JUMP_PAD_IMPULSE,
   JUMP_IMPULSE,
   MAX_FRAME_SECONDS,
   ORB_JUMP_IMPULSE,
@@ -15,6 +18,7 @@ import {
 } from './constants'
 import {
   findActivatableOrb,
+  findOverlappingObject,
   getGroundTopAtX,
   getOverlappingTriggers,
   hasSpikeCollision,
@@ -54,7 +58,12 @@ const snapQuarterRotation = (rotationRadians: number): number => {
 const typedObjects = {
   solids: levelData.objects.filter((object) => object.type === 'ground'),
   spikes: levelData.objects.filter((object) => object.type === 'spike'),
-  orbs: levelData.objects.filter((object) => object.type === 'jumpOrb'),
+  jumpOrbs: levelData.objects.filter((object) => object.type === 'jumpOrb'),
+  dashOrbs: levelData.objects.filter((object) => object.type === 'dashOrb'),
+  jumpPads: levelData.objects.filter((object) => object.type === 'jumpPad'),
+  gravityPortals: levelData.objects.filter(
+    (object) => object.type === 'gravityPortal',
+  ),
 }
 
 const initialPlayerY = getGroundTopAtX(START_X, typedObjects.solids, GROUND_Y) - PLAYER_SIZE
@@ -79,11 +88,12 @@ const createInitialState = (): GameState => ({
   cameraX: 0,
   progressPercent: 0,
   speedMultiplier: 1,
+  gravityDirection: 1,
   deathTimer: 0,
   practiceCheckpoint: null,
   activatedCheckpointTriggers: new Set<string>(),
   activatedSpeedTriggers: new Set<string>(),
-  activatedOrbs: new Set<string>(),
+  activatedInteractives: new Set<string>(),
 })
 
 export const createGameRuntime = ({
@@ -124,10 +134,11 @@ export const createGameRuntime = ({
     state.player.rotation = 0
     state.player.grounded = true
     state.speedMultiplier = speedMultiplier
+    state.gravityDirection = 1
     state.deathTimer = 0
     state.activatedCheckpointTriggers.clear()
     state.activatedSpeedTriggers.clear()
-    state.activatedOrbs.clear()
+    state.activatedInteractives.clear()
     syncCameraAndProgress()
   }
 
@@ -183,22 +194,52 @@ export const createGameRuntime = ({
     state.player.vy = 0
   }
 
-  const tryJump = (): 'none' | 'jump' | 'orb' => {
-    const orb = findActivatableOrb(state.player, typedObjects.orbs)
-    if (orb && !state.activatedOrbs.has(orb.id)) {
-      state.activatedOrbs.add(orb.id)
-      state.player.vy = ORB_JUMP_IMPULSE
+  const activateInteractive = (id: string): boolean => {
+    if (state.activatedInteractives.has(id)) {
+      return false
+    }
+    state.activatedInteractives.add(id)
+    return true
+  }
+
+  const tryJump = (): 'none' | 'jump' | 'orb' | 'dash' => {
+    const dashOrb = findActivatableOrb(state.player, typedObjects.dashOrbs)
+    if (dashOrb && activateInteractive(dashOrb.id)) {
+      state.player.vy = DASH_ORB_VERTICAL_IMPULSE * state.gravityDirection
+      state.player.grounded = false
+      return 'dash'
+    }
+
+    const jumpOrb = findActivatableOrb(state.player, typedObjects.jumpOrbs)
+    if (jumpOrb && activateInteractive(jumpOrb.id)) {
+      state.player.vy = ORB_JUMP_IMPULSE * state.gravityDirection
       state.player.grounded = false
       return 'orb'
     }
 
     if (state.player.grounded) {
-      state.player.vy = JUMP_IMPULSE
+      state.player.vy = JUMP_IMPULSE * state.gravityDirection
       state.player.grounded = false
       return 'jump'
     }
 
     return 'none'
+  }
+
+  const applyAutomaticInteractions = () => {
+    const portal = findOverlappingObject(state.player, typedObjects.gravityPortals)
+    if (portal && activateInteractive(portal.id)) {
+      state.gravityDirection = state.gravityDirection === 1 ? -1 : 1
+      state.player.grounded = false
+      audio.playGravityFlip()
+    }
+
+    const jumpPad = findOverlappingObject(state.player, typedObjects.jumpPads)
+    if (jumpPad && activateInteractive(jumpPad.id)) {
+      state.player.vy = JUMP_PAD_IMPULSE * state.gravityDirection
+      state.player.grounded = false
+      audio.playJumpPad()
+    }
   }
 
   const applyTriggers = () => {
@@ -241,28 +282,35 @@ export const createGameRuntime = ({
 
     state.runElapsedSeconds += dt
 
+    let jumpKind: 'none' | 'jump' | 'orb' | 'dash' = 'none'
     if (controls.jumpPressed) {
-      const jumpKind = tryJump()
+      jumpKind = tryJump()
       if (jumpKind === 'jump') {
         audio.playJump()
       } else if (jumpKind === 'orb') {
         audio.playOrbJump()
+      } else if (jumpKind === 'dash') {
+        audio.playDashOrb()
       }
     }
 
     const wasGrounded = state.player.grounded
     const previousY = state.player.y
 
-    state.player.vx = BASE_SCROLL_SPEED * state.speedMultiplier
+    const dashBoost = jumpKind === 'dash' ? DASH_ORB_SPEED_BOOST : 0
+    state.player.vx = BASE_SCROLL_SPEED * state.speedMultiplier + dashBoost
     state.player.x += state.player.vx * dt
-    state.player.vy += GRAVITY * dt
+    state.player.vy += GRAVITY * state.gravityDirection * dt
     state.player.y += state.player.vy * dt
 
     state.player.grounded = resolveGroundCollision(
       state.player,
       typedObjects.solids,
       previousY,
+      state.gravityDirection,
     )
+
+    applyAutomaticInteractions()
 
     if (state.player.grounded) {
       if (!wasGrounded) {
@@ -270,13 +318,18 @@ export const createGameRuntime = ({
       }
       state.player.rotation = snapQuarterRotation(state.player.rotation)
     } else {
-      state.player.rotation += state.player.vx * dt * 0.035
+      state.player.rotation += state.player.vx * dt * 0.035 * state.gravityDirection
     }
 
     applyTriggers()
 
-    const fellOutOfBounds = state.player.y > INTERNAL_HEIGHT + state.player.size
-    if (hasSpikeCollision(state.player, typedObjects.spikes) || fellOutOfBounds) {
+    const fellBelowBounds = state.player.y > INTERNAL_HEIGHT + state.player.size
+    const fellAboveBounds = state.player.y + state.player.size < -state.player.size
+    if (
+      hasSpikeCollision(state.player, typedObjects.spikes) ||
+      fellBelowBounds ||
+      fellAboveBounds
+    ) {
       enterDeadState()
       return
     }
@@ -482,6 +535,7 @@ export const createGameRuntime = ({
       progressPercent: Number(state.progressPercent.toFixed(2)),
       orientationBlocked,
       speed: Number((BASE_SCROLL_SPEED * state.speedMultiplier).toFixed(2)),
+      gravityDirection: state.gravityDirection === 1 ? 'down' : 'up',
       player: {
         x: Number(state.player.x.toFixed(2)),
         y: Number(state.player.y.toFixed(2)),

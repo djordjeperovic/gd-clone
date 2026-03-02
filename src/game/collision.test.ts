@@ -37,7 +37,7 @@ describe('resolveGroundCollision', () => {
   it('lands the player on top of a solid when falling through it', () => {
     const player = createPlayer({ x: 10, y: 90, vy: 240 })
 
-    const grounded = resolveGroundCollision(player, solids, 40)
+    const grounded = resolveGroundCollision(player, solids, 40, 1)
 
     expect(grounded).toBe(true)
     expect(player.y).toBe(80)
@@ -47,10 +47,30 @@ describe('resolveGroundCollision', () => {
   it('resolves upward ceiling hits without marking grounded', () => {
     const player = createPlayer({ x: 10, y: 110, vy: -180 })
 
-    const grounded = resolveGroundCollision(player, solids, 140)
+    const grounded = resolveGroundCollision(player, solids, 140, 1)
 
     expect(grounded).toBe(false)
     expect(player.y).toBe(120)
+    expect(player.vy).toBe(0)
+  })
+
+  it('lands on the underside of a solid when gravity is inverted', () => {
+    const player = createPlayer({ x: 10, y: 94, vy: -240 })
+
+    const grounded = resolveGroundCollision(player, solids, 130, -1)
+
+    expect(grounded).toBe(true)
+    expect(player.y).toBe(120)
+    expect(player.vy).toBe(0)
+  })
+
+  it('resolves downward top-surface hits while inverted without grounding', () => {
+    const player = createPlayer({ x: 10, y: 88, vy: 180 })
+
+    const grounded = resolveGroundCollision(player, solids, 72, -1)
+
+    expect(grounded).toBe(false)
+    expect(player.y).toBe(80)
     expect(player.vy).toBe(0)
   })
 })

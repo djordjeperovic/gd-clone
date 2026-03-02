@@ -147,6 +147,9 @@ describe('AudioSystem', () => {
     expect(() => {
       audio.playJump()
       audio.playOrbJump()
+      audio.playJumpPad()
+      audio.playDashOrb()
+      audio.playGravityFlip()
       audio.playCrash()
       audio.playCheckpoint()
       audio.playSpeedChange(1.25)
@@ -176,6 +179,9 @@ describe('AudioSystem', () => {
     const audio = new AudioSystem({ masterVolume: 0.2 })
     audio.playJump()
     audio.playOrbJump()
+    audio.playJumpPad()
+    audio.playDashOrb()
+    audio.playGravityFlip()
     audio.playCrash()
     audio.playCheckpoint()
     audio.playSpeedChange(1.4)
@@ -183,8 +189,8 @@ describe('AudioSystem', () => {
 
     const context = FakeAudioContext.instances[0]
     expect(context).toBeDefined()
-    expect(context.oscillators).toHaveLength(13)
-    expect(context.gains).toHaveLength(14)
+    expect(context.oscillators).toHaveLength(18)
+    expect(context.gains).toHaveLength(19)
 
     for (const oscillator of context.oscillators) {
       expect(oscillator.starts).toHaveLength(1)

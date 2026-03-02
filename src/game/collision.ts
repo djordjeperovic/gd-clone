@@ -27,6 +27,7 @@ export const resolveGroundCollision = (
   player: PlayerState,
   solids: readonly LevelObject[],
   previousY: number,
+  gravityDirection: 1 | -1,
 ): boolean => {
   const playerRect = getPlayerRect(player)
   const previousTop = previousY
@@ -35,6 +36,8 @@ export const resolveGroundCollision = (
   const currentBottom = player.y + player.size
 
   let landingTop = Number.POSITIVE_INFINITY
+  let landingBottom = Number.NEGATIVE_INFINITY
+  let ceilingTop = Number.POSITIVE_INFINITY
   let ceilingBottom = Number.NEGATIVE_INFINITY
 
   for (const solid of solids) {
@@ -48,24 +51,48 @@ export const resolveGroundCollision = (
     const top = solid.y
     const bottom = solid.y + solid.height
 
-    if (previousBottom <= top && currentBottom >= top && top < landingTop) {
-      landingTop = top
+    if (gravityDirection === 1) {
+      if (previousBottom <= top && currentBottom >= top && top < landingTop) {
+        landingTop = top
+      }
+
+      if (previousTop >= bottom && currentTop <= bottom && bottom > ceilingBottom) {
+        ceilingBottom = bottom
+      }
+      continue
     }
 
-    if (previousTop >= bottom && currentTop <= bottom && bottom > ceilingBottom) {
-      ceilingBottom = bottom
+    if (previousTop >= bottom && currentTop <= bottom && bottom > landingBottom) {
+      landingBottom = bottom
+    }
+
+    if (previousBottom <= top && currentBottom >= top && top < ceilingTop) {
+      ceilingTop = top
     }
   }
 
-  if (landingTop !== Number.POSITIVE_INFINITY) {
+  if (gravityDirection === 1 && landingTop !== Number.POSITIVE_INFINITY) {
     player.y = landingTop - player.size
     player.vy = 0
     return true
   }
 
-  if (ceilingBottom !== Number.NEGATIVE_INFINITY) {
+  if (gravityDirection === 1 && ceilingBottom !== Number.NEGATIVE_INFINITY) {
     player.y = ceilingBottom
     if (player.vy < 0) {
+      player.vy = 0
+    }
+  }
+
+  if (gravityDirection === -1 && landingBottom !== Number.NEGATIVE_INFINITY) {
+    player.y = landingBottom
+    player.vy = 0
+    return true
+  }
+
+  if (gravityDirection === -1 && ceilingTop !== Number.POSITIVE_INFINITY) {
+    player.y = ceilingTop - player.size
+    if (player.vy > 0) {
       player.vy = 0
     }
   }
@@ -89,6 +116,19 @@ export const findActivatableOrb = (
   for (const orb of orbs) {
     if (intersects(probeRect, orb)) {
       return orb
+    }
+  }
+  return null
+}
+
+export const findOverlappingObject = (
+  player: PlayerState,
+  objects: readonly LevelObject[],
+): LevelObject | null => {
+  const playerRect = getPlayerRect(player)
+  for (const object of objects) {
+    if (intersects(playerRect, object)) {
+      return object
     }
   }
   return null

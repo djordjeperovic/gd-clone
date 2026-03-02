@@ -114,6 +114,58 @@ export class AudioSystem {
     ])
   }
 
+  playJumpPad(): void {
+    this.playSequence([
+      {
+        frequency: 500,
+        toFrequency: 760,
+        durationSeconds: 0.11,
+        volume: 0.12,
+        type: 'square',
+      },
+    ])
+  }
+
+  playDashOrb(): void {
+    this.playSequence([
+      {
+        frequency: 710,
+        toFrequency: 1180,
+        durationSeconds: 0.08,
+        volume: 0.11,
+        type: 'sawtooth',
+      },
+      {
+        frequency: 950,
+        toFrequency: 1410,
+        durationSeconds: 0.06,
+        startOffsetSeconds: 0.04,
+        volume: 0.09,
+        type: 'triangle',
+      },
+    ])
+  }
+
+  playGravityFlip(): void {
+    this.playSequence([
+      {
+        frequency: 420,
+        toFrequency: 240,
+        durationSeconds: 0.07,
+        volume: 0.08,
+        type: 'sine',
+      },
+      {
+        frequency: 240,
+        toFrequency: 620,
+        durationSeconds: 0.1,
+        startOffsetSeconds: 0.05,
+        volume: 0.11,
+        type: 'triangle',
+      },
+    ])
+  }
+
   playCrash(): void {
     this.playSequence([
       {

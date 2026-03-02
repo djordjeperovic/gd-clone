@@ -110,6 +110,82 @@ const drawGroundAndObjects = (
       ctx.lineWidth = 3
       ctx.strokeStyle = '#fff2ad'
       ctx.stroke()
+      continue
+    }
+
+    if (object.type === 'dashOrb') {
+      const centerX = screenX + object.width / 2
+      const centerY = object.y + object.height / 2
+      const radius = object.width / 2
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+      ctx.fillStyle = '#49d7f5'
+      ctx.fill()
+      ctx.lineWidth = 3
+      ctx.strokeStyle = '#c9f5ff'
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.moveTo(centerX - radius * 0.4, centerY)
+      ctx.lineTo(centerX + radius * 0.22, centerY)
+      ctx.lineTo(centerX + radius * 0.05, centerY - radius * 0.22)
+      ctx.moveTo(centerX + radius * 0.22, centerY)
+      ctx.lineTo(centerX + radius * 0.05, centerY + radius * 0.22)
+      ctx.strokeStyle = '#08395d'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      continue
+    }
+
+    if (object.type === 'jumpPad') {
+      ctx.fillStyle = '#f5a23f'
+      ctx.fillRect(screenX, object.y, object.width, object.height)
+      ctx.strokeStyle = '#ffe1a7'
+      ctx.lineWidth = 2
+      ctx.strokeRect(screenX, object.y, object.width, object.height)
+
+      const midY = object.y + object.height / 2
+      ctx.beginPath()
+      ctx.moveTo(screenX + 6, midY + 2)
+      ctx.lineTo(screenX + object.width / 2, object.y + 2)
+      ctx.lineTo(screenX + object.width - 6, midY + 2)
+      ctx.strokeStyle = '#fff0cf'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      continue
+    }
+
+    if (object.type === 'gravityPortal') {
+      const centerX = screenX + object.width / 2
+      const centerY = object.y + object.height / 2
+      const radius = Math.min(object.width, object.height) * 0.45
+
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(96, 132, 255, 0.2)'
+      ctx.fill()
+      ctx.lineWidth = 3
+      ctx.strokeStyle = '#a9baff'
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius * 0.56, 0, Math.PI * 2)
+      ctx.strokeStyle = '#7ff4d8'
+      ctx.lineWidth = 2
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.moveTo(centerX, centerY - radius * 0.5)
+      ctx.lineTo(centerX, centerY + radius * 0.5)
+      ctx.moveTo(centerX - radius * 0.22, centerY - radius * 0.28)
+      ctx.lineTo(centerX, centerY - radius * 0.5)
+      ctx.lineTo(centerX + radius * 0.22, centerY - radius * 0.28)
+      ctx.moveTo(centerX - radius * 0.22, centerY + radius * 0.28)
+      ctx.lineTo(centerX, centerY + radius * 0.5)
+      ctx.lineTo(centerX + radius * 0.22, centerY + radius * 0.28)
+      ctx.strokeStyle = '#d7e1ff'
+      ctx.lineWidth = 2
+      ctx.stroke()
     }
   }
 }
@@ -186,10 +262,10 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, state: GameState): void => {
 
 const drawHud = (ctx: CanvasRenderingContext2D, state: GameState): void => {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
-  ctx.fillRect(10, 10, 282, 106)
+  ctx.fillRect(10, 10, 282, 128)
   ctx.strokeStyle = 'rgba(147, 208, 255, 0.65)'
   ctx.lineWidth = 1
-  ctx.strokeRect(10, 10, 282, 106)
+  ctx.strokeRect(10, 10, 282, 128)
 
   ctx.fillStyle = '#eef7ff'
   ctx.font = '16px "Trebuchet MS", sans-serif'
@@ -198,6 +274,7 @@ const drawHud = (ctx: CanvasRenderingContext2D, state: GameState): void => {
   ctx.fillText(`Attempt: ${state.attempt}`, 20, 40)
   ctx.fillText(`Progress: ${state.progressPercent.toFixed(1)}%`, 20, 62)
   ctx.fillText(`Speed: ${(state.speedMultiplier * 100).toFixed(0)}%`, 20, 84)
+  ctx.fillText(`Gravity: ${state.gravityDirection === 1 ? 'Down' : 'Up'}`, 20, 106)
 
   ctx.fillStyle =
     state.currentRunMode === 'practice' ? 'rgba(112, 255, 176, 0.85)' : 'rgba(255, 215, 120, 0.85)'
@@ -240,6 +317,7 @@ const drawModeOverlay = (ctx: CanvasRenderingContext2D, state: GameState): void 
     drawOverlayPanel(ctx, 'GD Clone MVP', [
       'Space / ArrowUp / Touch: jump and start',
       'R: restart   P: toggle practice   Esc: pause   F: fullscreen',
+      'Jump pads auto-launch. Dash orbs trigger on jump input.',
       'Reach the end of the authored level without hitting spikes.',
     ])
     return

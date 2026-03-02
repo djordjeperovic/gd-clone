@@ -6,14 +6,14 @@ It focuses on clean game-loop architecture, reproducible tests, and CI-friendly 
 
 ## Project Overview
 
-This project implements a single-level auto-runner where the player jumps over spikes, uses jump orbs, and manages speed changes. The runtime uses a fixed-step simulation for predictable behavior in both gameplay and tests.
+This project implements a single-level auto-runner where the player jumps over spikes, uses jump and dash orbs, auto-triggers jump pads, flips gravity through portals, and manages speed changes. The runtime uses a fixed-step simulation for predictable behavior in both gameplay and tests.
 
 ### Features
 
 - Fixed-step (60 FPS) deterministic runtime with authored level data
 - Multiple run states: menu, running, practice, paused, dead, complete
 - Practice mode with checkpoints and restart behavior
-- Speed-change triggers and jump-orb mechanics
+- Speed-change triggers plus jump orbs, dash orbs, jump pads, and gravity portals
 - Lightweight synthesized SFX (no external audio assets required)
 - Deterministic test hooks for automation (`window.advanceTime`, `window.render_game_to_text`)
 - Mobile landscape handling with portrait pause overlay, safe-area-aware viewport fit, and letterboxed 800x450 rendering
@@ -22,7 +22,7 @@ This project implements a single-level auto-runner where the player jumps over s
 
 ## Controls
 
-- `Space` or `ArrowUp`: jump (also starts a run from menu)
+- `Space` or `ArrowUp`: jump (also starts a run from menu); activates jump/dash orbs while overlapping
 - Left click / tap on canvas: jump
 - `R`: restart run
 - `P`: toggle practice mode

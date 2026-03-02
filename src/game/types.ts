@@ -8,7 +8,13 @@ export type GameMode =
 
 export type RunMode = 'running' | 'practice'
 
-export type LevelObjectType = 'ground' | 'spike' | 'jumpOrb'
+export type LevelObjectType =
+  | 'ground'
+  | 'spike'
+  | 'jumpOrb'
+  | 'gravityPortal'
+  | 'jumpPad'
+  | 'dashOrb'
 export type TriggerType = 'checkpoint' | 'speed'
 
 export interface Rect {
@@ -63,11 +69,12 @@ export interface GameState {
   cameraX: number
   progressPercent: number
   speedMultiplier: number
+  gravityDirection: 1 | -1
   deathTimer: number
   practiceCheckpoint: PracticeCheckpoint | null
   activatedCheckpointTriggers: Set<string>
   activatedSpeedTriggers: Set<string>
-  activatedOrbs: Set<string>
+  activatedInteractives: Set<string>
 }
 
 export interface InputSnapshot {

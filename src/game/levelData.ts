@@ -43,6 +43,49 @@ const jumpOrbs: LevelObject[] = [
   { id: 'orb-4', type: 'jumpOrb', x: 4668, y: 300, width: 26, height: 26 },
 ]
 
+const mechanicsShowcaseObjects: LevelObject[] = [
+  {
+    id: 'ground-ceiling-1',
+    type: 'ground',
+    x: 1550,
+    y: 52,
+    width: 220,
+    height: 18,
+  },
+  {
+    id: 'jump-pad-1',
+    type: 'jumpPad',
+    x: 1460,
+    y: 320,
+    width: 30,
+    height: 12,
+  },
+  {
+    id: 'gravity-portal-1',
+    type: 'gravityPortal',
+    x: 1515,
+    y: 170,
+    width: 30,
+    height: 70,
+  },
+  {
+    id: 'dash-orb-1',
+    type: 'dashOrb',
+    x: 1640,
+    y: 84,
+    width: 26,
+    height: 26,
+  },
+  {
+    id: 'gravity-portal-2',
+    type: 'gravityPortal',
+    x: 1730,
+    y: 64,
+    width: 30,
+    height: 76,
+  },
+]
+
 const triggers: LevelTrigger[] = [
   {
     id: 'checkpoint-1',
@@ -90,6 +133,11 @@ const triggers: LevelTrigger[] = [
 
 export const levelData: LevelData = {
   length: LEVEL_LENGTH,
-  objects: [...groundBlocks, ...spikes, ...jumpOrbs],
+  objects: [
+    ...groundBlocks,
+    ...spikes,
+    ...jumpOrbs,
+    ...mechanicsShowcaseObjects,
+  ],
   triggers,
 }
