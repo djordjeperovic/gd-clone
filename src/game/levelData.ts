@@ -21,9 +21,7 @@ const earlySectionSpikes = [600, 860, 1090, 1124, 1380, 1660]
 const midSectionSpikes = [
   1960, 2180, 2214, 2248, 2520, 2790, 2824, 3090, 3124, 3158, 3410,
 ]
-const lateSectionSpikes = [
-  3590, 3624, 3860, 4070, 4104, 4138, 4400, 4620, 4654, 4870, 4904,
-]
+const lateSectionSpikes = [3608, 3650, 3892, 4114, 4156, 4438, 4676, 4922]
 
 const spikes: LevelObject[] = [
   ...earlySectionSpikes,
@@ -39,10 +37,10 @@ const spikes: LevelObject[] = [
 }))
 
 const jumpOrbs: LevelObject[] = [
-  { id: 'orb-1', type: 'jumpOrb', x: 2274, y: 292, width: 26, height: 26 },
-  { id: 'orb-2', type: 'jumpOrb', x: 3068, y: 262, width: 26, height: 26 },
-  { id: 'orb-3', type: 'jumpOrb', x: 3728, y: 276, width: 26, height: 26 },
-  { id: 'orb-4', type: 'jumpOrb', x: 4518, y: 270, width: 26, height: 26 },
+  { id: 'orb-1', type: 'jumpOrb', x: 2258, y: 314, width: 26, height: 26 },
+  { id: 'orb-2', type: 'jumpOrb', x: 3102, y: 300, width: 26, height: 26 },
+  { id: 'orb-3', type: 'jumpOrb', x: 3898, y: 304, width: 26, height: 26 },
+  { id: 'orb-4', type: 'jumpOrb', x: 4668, y: 300, width: 26, height: 26 },
 ]
 
 const triggers: LevelTrigger[] = [
@@ -78,7 +76,7 @@ const triggers: LevelTrigger[] = [
     y: 280,
     width: 30,
     height: 110,
-    speedMultiplier: 1.35,
+    speedMultiplier: 1.28,
   },
   {
     id: 'checkpoint-3',
