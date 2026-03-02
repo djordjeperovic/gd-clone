@@ -152,6 +152,7 @@ describe('AudioSystem', () => {
       audio.playGravityFlip()
       audio.playCrash()
       audio.playCheckpoint()
+      audio.playCoinCollect()
       audio.playSpeedChange(1.25)
       audio.playComplete()
     }).not.toThrow()
@@ -184,13 +185,14 @@ describe('AudioSystem', () => {
     audio.playGravityFlip()
     audio.playCrash()
     audio.playCheckpoint()
+    audio.playCoinCollect()
     audio.playSpeedChange(1.4)
     audio.playComplete()
 
     const context = FakeAudioContext.instances[0]
     expect(context).toBeDefined()
-    expect(context.oscillators).toHaveLength(18)
-    expect(context.gains).toHaveLength(19)
+    expect(context.oscillators).toHaveLength(19)
+    expect(context.gains).toHaveLength(20)
 
     for (const oscillator of context.oscillators) {
       expect(oscillator.starts).toHaveLength(1)

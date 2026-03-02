@@ -163,6 +163,10 @@ const drawGroundAndObjects = (
 
     const screenX = object.x - state.cameraX
 
+    if (object.type === 'coin' && state.activatedInteractives.has(object.id)) {
+      continue
+    }
+
     if (object.type === 'ground') {
       ctx.fillStyle = '#1f3e6f'
       ctx.fillRect(screenX, object.y, object.width, object.height)
@@ -270,6 +274,34 @@ const drawGroundAndObjects = (
       ctx.lineTo(centerX, centerY + radius * 0.5)
       ctx.lineTo(centerX + radius * 0.22, centerY + radius * 0.28)
       ctx.strokeStyle = '#d7e1ff'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      continue
+    }
+
+    if (object.type === 'coin') {
+      const centerX = screenX + object.width / 2
+      const centerY = object.y + object.height / 2
+      const outerRadius = object.width / 2
+
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2)
+      ctx.fillStyle = '#f6b624'
+      ctx.fill()
+      ctx.lineWidth = 2
+      ctx.strokeStyle = '#ffe59a'
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, outerRadius * 0.56, 0, Math.PI * 2)
+      ctx.strokeStyle = '#fff4c8'
+      ctx.lineWidth = 2
+      ctx.stroke()
+
+      ctx.beginPath()
+      ctx.moveTo(centerX, centerY - outerRadius * 0.32)
+      ctx.lineTo(centerX, centerY + outerRadius * 0.32)
+      ctx.strokeStyle = '#8f5a0a'
       ctx.lineWidth = 2
       ctx.stroke()
     }
@@ -409,10 +441,10 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, state: GameState): void => {
 
 const drawHud = (ctx: CanvasRenderingContext2D, state: GameState): void => {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
-  ctx.fillRect(10, 10, 282, 128)
+  ctx.fillRect(10, 10, 282, 150)
   ctx.strokeStyle = 'rgba(147, 208, 255, 0.65)'
   ctx.lineWidth = 1
-  ctx.strokeRect(10, 10, 282, 128)
+  ctx.strokeRect(10, 10, 282, 150)
 
   ctx.fillStyle = '#eef7ff'
   ctx.font = '16px "Trebuchet MS", sans-serif'
@@ -422,6 +454,7 @@ const drawHud = (ctx: CanvasRenderingContext2D, state: GameState): void => {
   ctx.fillText(`Progress: ${state.progressPercent.toFixed(1)}%`, 20, 62)
   ctx.fillText(`Speed: ${(state.speedMultiplier * 100).toFixed(0)}%`, 20, 84)
   ctx.fillText(`Gravity: ${state.gravityDirection === 1 ? 'Down' : 'Up'}`, 20, 106)
+  ctx.fillText(`Coins: ${state.coinCount}/${state.totalCoins}`, 20, 128)
 
   ctx.fillStyle =
     state.currentRunMode === 'practice' ? 'rgba(112, 255, 176, 0.85)' : 'rgba(255, 215, 120, 0.85)'
@@ -465,6 +498,7 @@ const drawModeOverlay = (ctx: CanvasRenderingContext2D, state: GameState): void 
       'Space / ArrowUp / Touch: jump and start',
       'R: restart   P: toggle practice   Esc: pause   F: fullscreen',
       'Jump pads auto-launch. Dash orbs trigger on jump input.',
+      'Collect optional coins in risky spots for extra challenge.',
       'Reach the end of the authored level without hitting spikes.',
     ])
     return
@@ -491,10 +525,13 @@ const drawModeOverlay = (ctx: CanvasRenderingContext2D, state: GameState): void 
     const bestTime = formatRunSeconds(state.bestCompletionSeconds)
     const bestCrashCount =
       state.bestCrashCount === null ? '--' : String(state.bestCrashCount)
+    const bestCoinCount = state.bestCoinCount === null ? '--' : String(state.bestCoinCount)
     drawOverlayPanel(ctx, 'Level Complete!', [
       `Completion Time: ${completionTime}`,
       `Best Time (Saved): ${bestTime}`,
       `Lowest Crashes (Saved): ${bestCrashCount}`,
+      `Coins This Run: ${state.coinCount}/${state.totalCoins}`,
+      `Best Coins (Saved): ${bestCoinCount}/${state.totalCoins}`,
       `Attempts This Session: ${state.attempt}`,
       `Crashes This Session: ${state.crashCount}`,
       'Press R to restart this run.',

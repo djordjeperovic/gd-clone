@@ -6,7 +6,7 @@ It focuses on clean game-loop architecture, reproducible tests, and CI-friendly 
 
 ## Project Overview
 
-This project implements a single-level auto-runner where the player jumps over spikes, uses jump and dash orbs, auto-triggers jump pads, flips gravity through portals, and manages speed changes. The runtime uses a fixed-step simulation for predictable behavior in both gameplay and tests.
+This project implements a single-level auto-runner where the player jumps over spikes, uses jump and dash orbs, auto-triggers jump pads, flips gravity through portals, manages speed changes, and can optionally collect challenge coins in risky routes. The runtime uses a fixed-step simulation for predictable behavior in both gameplay and tests.
 
 ### Features
 
@@ -14,6 +14,7 @@ This project implements a single-level auto-runner where the player jumps over s
 - Multiple run states: menu, running, practice, paused, dead, complete
 - Practice mode with checkpoints and restart behavior
 - Speed-change triggers plus jump orbs, dash orbs, jump pads, and gravity portals
+- Optional collectible coins placed in high-risk sections
 - Lightweight synthesized SFX (no external audio assets required)
 - Deterministic test hooks for automation (`window.advanceTime`, `window.render_game_to_text`)
 - Saved best completion time and lowest completion crash count across refreshes (localStorage)

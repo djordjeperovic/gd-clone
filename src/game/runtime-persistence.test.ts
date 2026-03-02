@@ -9,8 +9,11 @@ import type { LevelData } from './types'
 
 interface RuntimeTextState {
   mode: string
+  runMode: string
   bestCompletionSeconds: number | null
   bestCrashCount: number | null
+  bestCoinCount: number | null
+  coinCount: number
 }
 
 interface CountingStorage extends StorageAdapter {
@@ -29,12 +32,20 @@ const createCanvas = (): HTMLCanvasElement => {
   return canvas
 }
 
-const pressSpace = (): void => {
-  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }))
+const pressKey = (code: string): void => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code }))
 }
 
-const startRun = (runtime: GameRuntime): void => {
-  pressSpace()
+const startRun = (
+  runtime: GameRuntime,
+  options: { practice?: boolean } = {},
+): void => {
+  if (options.practice) {
+    pressKey('KeyP')
+    runtime.advanceTime(17)
+  }
+
+  pressKey('Space')
   runtime.advanceTime(17)
   runtime.advanceTime(17)
 }
@@ -47,6 +58,15 @@ const baseLevel: LevelData = {
   length: 220,
   objects: [
     { id: 'ground-1', type: 'ground', x: 0, y: 100, width: 220, height: 20 },
+  ],
+  triggers: [],
+}
+
+const coinLevel: LevelData = {
+  length: 240,
+  objects: [
+    { id: 'ground-1', type: 'ground', x: 0, y: 100, width: 240, height: 20 },
+    { id: 'coin-1', type: 'coin', x: 128, y: 70, width: 30, height: 30 },
   ],
   triggers: [],
 }
@@ -101,6 +121,7 @@ describe('runtime persistent stats', () => {
       JSON.stringify({
         bestCompletionSeconds: 12.34,
         bestCrashCount: 1,
+        bestCoinCount: 3,
       }),
     )
     const runtime = await createRuntimeForLevel(baseLevel, storage)
@@ -109,6 +130,7 @@ describe('runtime persistent stats', () => {
       const state = readRuntimeState(runtime)
       expect(state.bestCompletionSeconds).toBe(12.34)
       expect(state.bestCrashCount).toBe(1)
+      expect(state.bestCoinCount).toBe(3)
     } finally {
       runtime.dispose()
     }
@@ -119,28 +141,33 @@ describe('runtime persistent stats', () => {
       JSON.stringify({
         bestCompletionSeconds: 60,
         bestCrashCount: 4,
+        bestCoinCount: 0,
       }),
     )
-    const runtime = await createRuntimeForLevel(baseLevel, storage)
+    const runtime = await createRuntimeForLevel(coinLevel, storage)
 
     try {
       startRun(runtime)
-      runtime.advanceTime(250)
+      runtime.advanceTime(600)
       const state = readRuntimeState(runtime)
 
       expect(state.mode).toBe('complete')
       expect(state.bestCompletionSeconds).not.toBeNull()
       expect(state.bestCompletionSeconds).toBeLessThan(60)
       expect(state.bestCrashCount).toBe(0)
+      expect(state.coinCount).toBe(1)
+      expect(state.bestCoinCount).toBe(1)
       expect(storage.setCalls).toBeGreaterThan(0)
 
       const finalPayload = storage.payloads[storage.payloads.length - 1]
       const persisted = JSON.parse(finalPayload) as {
         bestCompletionSeconds: number
         bestCrashCount: number
+        bestCoinCount: number
       }
       expect(persisted.bestCrashCount).toBe(0)
       expect(persisted.bestCompletionSeconds).toBeLessThan(60)
+      expect(persisted.bestCoinCount).toBe(1)
       expect(persisted.bestCompletionSeconds).toBeCloseTo(
         state.bestCompletionSeconds ?? 0,
         2,
@@ -155,6 +182,7 @@ describe('runtime persistent stats', () => {
       JSON.stringify({
         bestCompletionSeconds: 0.01,
         bestCrashCount: 0,
+        bestCoinCount: 3,
       }),
     )
     const runtime = await createRuntimeForLevel(baseLevel, storage)
@@ -167,6 +195,7 @@ describe('runtime persistent stats', () => {
       expect(state.mode).toBe('complete')
       expect(state.bestCompletionSeconds).toBe(0.01)
       expect(state.bestCrashCount).toBe(0)
+      expect(state.bestCoinCount).toBe(3)
       expect(storage.setCalls).toBe(0)
     } finally {
       runtime.dispose()
@@ -192,6 +221,32 @@ describe('runtime persistent stats', () => {
       expect(state.mode).toBe('complete')
       expect(state.bestCompletionSeconds).not.toBeNull()
       expect(state.bestCrashCount).toBe(0)
+      expect(state.bestCoinCount).toBeNull()
+    } finally {
+      runtime.dispose()
+    }
+  })
+
+  it('tracks practice coins but never writes saved records from practice runs', async () => {
+    const storage = createCountingStorage(
+      JSON.stringify({
+        bestCompletionSeconds: 0.01,
+        bestCrashCount: 0,
+        bestCoinCount: 5,
+      }),
+    )
+    const runtime = await createRuntimeForLevel(coinLevel, storage)
+
+    try {
+      startRun(runtime, { practice: true })
+      runtime.advanceTime(600)
+      const state = readRuntimeState(runtime)
+
+      expect(state.mode).toBe('complete')
+      expect(state.runMode).toBe('practice')
+      expect(state.coinCount).toBe(1)
+      expect(state.bestCoinCount).toBe(5)
+      expect(storage.setCalls).toBe(0)
     } finally {
       runtime.dispose()
     }

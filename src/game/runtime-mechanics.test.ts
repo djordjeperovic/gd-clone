@@ -6,6 +6,8 @@ import type { LevelData } from './types'
 interface RuntimeTextState {
   mode: string
   gravityDirection: 'down' | 'up'
+  coinCount: number
+  totalCoins: number
   player: {
     x: number
     y: number
@@ -146,6 +148,42 @@ describe('runtime interactive mechanics', () => {
       runtime.advanceTime(17)
       const afterSecondPress = readRuntimeState(runtime)
       expect(afterSecondPress.player.vx).toBeLessThan(400)
+    } finally {
+      runtime.dispose()
+    }
+  })
+
+  it('collects coins once per attempt and resets coin count on restart', async () => {
+    const runtime = await createRuntimeForLevel({
+      length: 900,
+      objects: [
+        { id: 'ground-1', type: 'ground', x: 0, y: 100, width: 900, height: 20 },
+        { id: 'coin-1', type: 'coin', x: 260, y: 68, width: 34, height: 34 },
+      ],
+      triggers: [],
+    })
+
+    try {
+      startRun(runtime)
+      runtime.advanceTime(520)
+      const collected = readRuntimeState(runtime)
+
+      expect(collected.totalCoins).toBe(1)
+      expect(collected.coinCount).toBe(1)
+
+      runtime.advanceTime(220)
+      const stillOne = readRuntimeState(runtime)
+      expect(stillOne.coinCount).toBe(1)
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR' }))
+      runtime.advanceTime(17)
+      const restarted = readRuntimeState(runtime)
+      expect(restarted.mode).toBe('running')
+      expect(restarted.coinCount).toBe(0)
+
+      runtime.advanceTime(520)
+      const recollected = readRuntimeState(runtime)
+      expect(recollected.coinCount).toBe(1)
     } finally {
       runtime.dispose()
     }

@@ -210,6 +210,18 @@ export class AudioSystem {
     ])
   }
 
+  playCoinCollect(): void {
+    this.playSequence([
+      {
+        frequency: 880,
+        toFrequency: 1260,
+        durationSeconds: 0.07,
+        volume: 0.1,
+        type: 'triangle',
+      },
+    ])
+  }
+
   playSpeedChange(multiplier: number): void {
     const normalizedMultiplier = Number.isFinite(multiplier)
       ? clamp(multiplier, 0.4, 2.5)

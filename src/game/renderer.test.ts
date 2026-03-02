@@ -34,7 +34,10 @@ const createState = (cameraX: number): GameState => ({
   completedRunSeconds: null,
   bestCompletionSeconds: null,
   bestCrashCount: null,
+  bestCoinCount: null,
   crashCount: 0,
+  coinCount: 0,
+  totalCoins: 5,
   player: {
     x: cameraX + 220,
     y: 250,
@@ -207,5 +210,40 @@ describe('renderer parallax background', () => {
     expect(toLayerSignature(second, NEAR_LAYER_COLOR)).toEqual(
       toLayerSignature(first, NEAR_LAYER_COLOR),
     )
+  })
+
+  it('skips rendering coins that were already collected this attempt', () => {
+    const levelWithCoin: LevelData = {
+      length: 4000,
+      objects: [
+        { id: 'coin-1', type: 'coin', x: 240, y: 240, width: 24, height: 24 },
+      ],
+      triggers: [],
+    }
+
+    const withCoinVisible = createMockContext()
+    renderFrame({
+      ctx: withCoinVisible.ctx,
+      state: createState(0),
+      level: levelWithCoin,
+    })
+    const visibleCoinArcs = (
+      withCoinVisible.ctx.arc as unknown as { mock: { calls: unknown[] } }
+    ).mock.calls.length
+    expect(visibleCoinArcs).toBeGreaterThan(0)
+
+    const hiddenCoinState = createState(0)
+    hiddenCoinState.activatedInteractives.add('coin-1')
+    const withCoinCollected = createMockContext()
+    renderFrame({
+      ctx: withCoinCollected.ctx,
+      state: hiddenCoinState,
+      level: levelWithCoin,
+    })
+
+    const collectedCoinArcs = (
+      withCoinCollected.ctx.arc as unknown as { mock: { calls: unknown[] } }
+    ).mock.calls.length
+    expect(collectedCoinArcs).toBe(0)
   })
 })

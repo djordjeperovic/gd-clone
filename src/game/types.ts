@@ -15,6 +15,7 @@ export type LevelObjectType =
   | 'gravityPortal'
   | 'jumpPad'
   | 'dashOrb'
+  | 'coin'
 export type TriggerType = 'checkpoint' | 'speed'
 
 export interface Rect {
@@ -92,7 +93,10 @@ export interface GameState {
   completedRunSeconds: number | null
   bestCompletionSeconds: number | null
   bestCrashCount: number | null
+  bestCoinCount: number | null
   crashCount: number
+  coinCount: number
+  totalCoins: number
   player: PlayerState
   cameraX: number
   progressPercent: number

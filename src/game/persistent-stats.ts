@@ -3,6 +3,7 @@ export const PERSISTED_STATS_KEY = 'gdclone.stats.v1'
 export interface PersistentStats {
   bestCompletionSeconds: number | null
   bestCrashCount: number | null
+  bestCoinCount: number | null
 }
 
 export interface StorageAdapter {
@@ -18,6 +19,7 @@ interface UpdatePersistentStatsResult {
 const DEFAULT_PERSISTENT_STATS: PersistentStats = {
   bestCompletionSeconds: null,
   bestCrashCount: null,
+  bestCoinCount: null,
 }
 
 const isFiniteNonNegativeNumber = (value: unknown): value is number => {
@@ -32,6 +34,10 @@ const sanitizeCrashCount = (value: unknown): number | null => {
   return isFiniteNonNegativeNumber(value) ? Math.trunc(value) : null
 }
 
+const sanitizeCoinCount = (value: unknown): number | null => {
+  return isFiniteNonNegativeNumber(value) ? Math.trunc(value) : null
+}
+
 const sanitizeStats = (value: unknown): PersistentStats => {
   if (!value || typeof value !== 'object') {
     return { ...DEFAULT_PERSISTENT_STATS }
@@ -41,6 +47,7 @@ const sanitizeStats = (value: unknown): PersistentStats => {
   return {
     bestCompletionSeconds: sanitizeBestTime(candidate.bestCompletionSeconds),
     bestCrashCount: sanitizeCrashCount(candidate.bestCrashCount),
+    bestCoinCount: sanitizeCoinCount(candidate.bestCoinCount),
   }
 }
 
@@ -83,6 +90,7 @@ export const updatePersistentStatsOnCompletion = (
   currentStats: PersistentStats,
   completionSeconds: number,
   crashCount: number,
+  coinCount: number | null,
 ): UpdatePersistentStatsResult => {
   const nextStats = sanitizeStats(currentStats)
   let didChange = false
@@ -103,6 +111,15 @@ export const updatePersistentStatsOnCompletion = (
     (nextStats.bestCrashCount === null || safeCrashCount < nextStats.bestCrashCount)
   ) {
     nextStats.bestCrashCount = safeCrashCount
+    didChange = true
+  }
+
+  const safeCoinCount = sanitizeCoinCount(coinCount)
+  if (
+    safeCoinCount !== null &&
+    (nextStats.bestCoinCount === null || safeCoinCount > nextStats.bestCoinCount)
+  ) {
+    nextStats.bestCoinCount = safeCoinCount
     didChange = true
   }
 

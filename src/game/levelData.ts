@@ -43,6 +43,14 @@ const jumpOrbs: LevelObject[] = [
   { id: 'orb-4', type: 'jumpOrb', x: 4668, y: 300, width: 26, height: 26 },
 ]
 
+const coins: LevelObject[] = [
+  { id: 'coin-1', type: 'coin', x: 872, y: 330, width: 24, height: 24 },
+  { id: 'coin-2', type: 'coin', x: 1970, y: 330, width: 24, height: 24 },
+  { id: 'coin-3', type: 'coin', x: 2828, y: 330, width: 24, height: 24 },
+  { id: 'coin-4', type: 'coin', x: 4148, y: 330, width: 24, height: 24 },
+  { id: 'coin-5', type: 'coin', x: 4928, y: 330, width: 24, height: 24 },
+]
+
 const mechanicsShowcaseObjects: LevelObject[] = [
   {
     id: 'ground-ceiling-1',
@@ -137,6 +145,7 @@ export const levelData: LevelData = {
     ...groundBlocks,
     ...spikes,
     ...jumpOrbs,
+    ...coins,
     ...mechanicsShowcaseObjects,
   ],
   triggers,

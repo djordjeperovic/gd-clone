@@ -19,9 +19,11 @@ import {
 import {
   findActivatableOrb,
   findOverlappingObject,
+  getPlayerRect,
   getGroundTopAtX,
   getOverlappingTriggers,
   hasSpikeCollision,
+  intersects,
   isVisibleInCamera,
   resolveGroundCollision,
 } from './collision'
@@ -77,6 +79,7 @@ const typedObjects = {
   jumpOrbs: levelData.objects.filter((object) => object.type === 'jumpOrb'),
   dashOrbs: levelData.objects.filter((object) => object.type === 'dashOrb'),
   jumpPads: levelData.objects.filter((object) => object.type === 'jumpPad'),
+  coins: levelData.objects.filter((object) => object.type === 'coin'),
   gravityPortals: levelData.objects.filter(
     (object) => object.type === 'gravityPortal',
   ),
@@ -100,7 +103,10 @@ const createInitialState = (
   completedRunSeconds: null,
   bestCompletionSeconds: persistedStats.bestCompletionSeconds,
   bestCrashCount: persistedStats.bestCrashCount,
+  bestCoinCount: persistedStats.bestCoinCount,
   crashCount: 0,
+  coinCount: 0,
+  totalCoins: typedObjects.coins.length,
   player: {
     x: START_X,
     y: initialPlayerY,
@@ -192,6 +198,7 @@ export const createGameRuntime = ({
   const resetRunResults = () => {
     state.runElapsedSeconds = 0
     state.completedRunSeconds = null
+    state.coinCount = 0
   }
 
   const spawnAtStart = () => {
@@ -291,6 +298,25 @@ export const createGameRuntime = ({
     }
   }
 
+  const collectOverlappingCoins = () => {
+    const playerRect = getPlayerRect(state.player)
+    for (const coin of typedObjects.coins) {
+      if (state.activatedInteractives.has(coin.id)) {
+        continue
+      }
+      if (!intersects(playerRect, coin)) {
+        continue
+      }
+      if (!activateInteractive(coin.id)) {
+        continue
+      }
+
+      state.coinCount = Math.min(state.totalCoins, state.coinCount + 1)
+      audio.playCoinCollect()
+      emitOrbSparks(state.particles, coin)
+    }
+  }
+
   const applyTriggers = () => {
     const overlappingTriggers = getOverlappingTriggers(state.player, levelData.triggers)
     for (const trigger of overlappingTriggers) {
@@ -363,6 +389,7 @@ export const createGameRuntime = ({
     )
 
     applyAutomaticInteractions()
+    collectOverlappingCoins()
 
     if (state.player.grounded) {
       if (!wasGrounded) {
@@ -397,20 +424,25 @@ export const createGameRuntime = ({
       state.completedRunSeconds = completionSeconds
       audio.playComplete()
 
-      const updatedStats = updatePersistentStatsOnCompletion(
-        {
-          bestCompletionSeconds: state.bestCompletionSeconds,
-          bestCrashCount: state.bestCrashCount,
-        },
-        completionSeconds,
-        state.crashCount,
-      )
+      if (state.currentRunMode === 'running') {
+        const updatedStats = updatePersistentStatsOnCompletion(
+          {
+            bestCompletionSeconds: state.bestCompletionSeconds,
+            bestCrashCount: state.bestCrashCount,
+            bestCoinCount: state.bestCoinCount,
+          },
+          completionSeconds,
+          state.crashCount,
+          state.totalCoins > 0 ? state.coinCount : null,
+        )
 
-      state.bestCompletionSeconds = updatedStats.stats.bestCompletionSeconds
-      state.bestCrashCount = updatedStats.stats.bestCrashCount
+        state.bestCompletionSeconds = updatedStats.stats.bestCompletionSeconds
+        state.bestCrashCount = updatedStats.stats.bestCrashCount
+        state.bestCoinCount = updatedStats.stats.bestCoinCount
 
-      if (updatedStats.didChange) {
-        writePersistentStats(storage, updatedStats.stats)
+        if (updatedStats.didChange) {
+          writePersistentStats(storage, updatedStats.stats)
+        }
       }
     }
   }
@@ -577,7 +609,8 @@ export const createGameRuntime = ({
   const renderGameToText = () => {
     const visibleObjects = levelData.objects
       .filter((object) =>
-        isVisibleInCamera(object.x, object.width, state.cameraX, INTERNAL_WIDTH),
+        isVisibleInCamera(object.x, object.width, state.cameraX, INTERNAL_WIDTH) &&
+        !(object.type === 'coin' && state.activatedInteractives.has(object.id)),
       )
       .slice(0, 24)
       .map(formatVisibleObject)
@@ -587,6 +620,14 @@ export const createGameRuntime = ({
         isVisibleInCamera(spike.x, spike.width, state.cameraX, INTERNAL_WIDTH),
       )
       .slice(0, 12)
+      .map(formatVisibleObject)
+
+    const visibleCollectibles = typedObjects.coins
+      .filter(
+        (coin) =>
+          isVisibleInCamera(coin.x, coin.width, state.cameraX, INTERNAL_WIDTH) &&
+          !state.activatedInteractives.has(coin.id),
+      )
       .map(formatVisibleObject)
 
     const payload = {
@@ -605,7 +646,10 @@ export const createGameRuntime = ({
           ? null
           : Number(state.bestCompletionSeconds.toFixed(2)),
       bestCrashCount: state.bestCrashCount,
+      bestCoinCount: state.bestCoinCount,
       crashCount: state.crashCount,
+      coinCount: state.coinCount,
+      totalCoins: state.totalCoins,
       progressPercent: Number(state.progressPercent.toFixed(2)),
       orientationBlocked,
       speed: Number((BASE_SCROLL_SPEED * state.speedMultiplier).toFixed(2)),
@@ -620,6 +664,7 @@ export const createGameRuntime = ({
       },
       visibleObjects,
       visibleHazards,
+      visibleCollectibles,
       practiceCheckpoint: state.practiceCheckpoint
         ? {
             x: Number(state.practiceCheckpoint.x.toFixed(2)),

@@ -16,9 +16,10 @@ const DUST_COLOR = '#d5ebff'
 const PAD_DUST_COLOR = '#ffe3c2'
 const JUMP_ORB_SPARK_COLOR = '#ffe881'
 const DASH_ORB_SPARK_COLOR = '#8cebff'
+const COIN_SPARK_COLOR = '#ffd35a'
 const SHARD_COLORS = ['#e7f0ff', '#66c8ff', '#1b3c66', '#9ad7ff'] as const
 
-type OrbSparkKind = 'jump' | 'dash'
+type OrbSparkKind = 'jump' | 'dash' | 'coin'
 export type JumpDustSource = 'jump' | 'pad' | 'landing'
 
 const nextRandom = (system: ParticleSystemState): number => {
@@ -149,6 +150,9 @@ export const emitJumpDust = (
 }
 
 const resolveOrbSparkKind = (orb: LevelObject): OrbSparkKind => {
+  if (orb.type === 'coin') {
+    return 'coin'
+  }
   return orb.type === 'dashOrb' ? 'dash' : 'jump'
 }
 
@@ -159,9 +163,14 @@ export const emitOrbSparks = (
   const kind = resolveOrbSparkKind(orb)
   const centerX = orb.x + orb.width / 2
   const centerY = orb.y + orb.height / 2
-  const count = kind === 'dash' ? 16 : 12
-  const color = kind === 'dash' ? DASH_ORB_SPARK_COLOR : JUMP_ORB_SPARK_COLOR
-  const speedMax = kind === 'dash' ? 320 : 280
+  const count = kind === 'dash' ? 16 : kind === 'coin' ? 14 : 12
+  const color =
+    kind === 'dash'
+      ? DASH_ORB_SPARK_COLOR
+      : kind === 'coin'
+        ? COIN_SPARK_COLOR
+        : JUMP_ORB_SPARK_COLOR
+  const speedMax = kind === 'dash' ? 320 : kind === 'coin' ? 300 : 280
 
   for (let index = 0; index < count; index += 1) {
     const angle = randomRange(system, 0, Math.PI * 2)
