@@ -4,7 +4,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const JUMP_FRAMES = [
   87, 139, 185, 243, 299, 354, 393, 451, 496, 546, 585, 624, 663, 702, 742,
-  781, 820,
+  781, 820, 956, 1000, 1044, 1088, 1132, 1176, 1220, 1260, 1301, 1342, 1383,
+  1422, 1461, 1500,
 ]
 
 const FINAL_SETTLE_FRAMES = 360

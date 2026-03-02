@@ -23,7 +23,21 @@
       702,
       742,
       781,
-      820
+      820,
+      956,
+      1000,
+      1044,
+      1088,
+      1132,
+      1176,
+      1220,
+      1260,
+      1301,
+      1342,
+      1383,
+      1422,
+      1461,
+      1500
     ]
   },
   "steps": [
@@ -176,6 +190,146 @@
     {
       "buttons": [],
       "frames": 39
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 135
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 43
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 39
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 40
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 40
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 40
+    },
+    {
+      "buttons": [
+        "space"
+      ],
+      "frames": 1
+    },
+    {
+      "buttons": [],
+      "frames": 38
     },
     {
       "buttons": [
