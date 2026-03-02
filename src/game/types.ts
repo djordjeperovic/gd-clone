@@ -91,6 +91,7 @@ export interface GameState {
   runElapsedSeconds: number
   completedRunSeconds: number | null
   bestCompletionSeconds: number | null
+  bestCrashCount: number | null
   crashCount: number
   player: PlayerState
   cameraX: number

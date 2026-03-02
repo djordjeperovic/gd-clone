@@ -16,6 +16,7 @@ This project implements a single-level auto-runner where the player jumps over s
 - Speed-change triggers plus jump orbs, dash orbs, jump pads, and gravity portals
 - Lightweight synthesized SFX (no external audio assets required)
 - Deterministic test hooks for automation (`window.advanceTime`, `window.render_game_to_text`)
+- Saved best completion time and lowest completion crash count across refreshes (localStorage)
 - Mobile landscape handling with portrait pause overlay, safe-area-aware viewport fit, and letterboxed 800x450 rendering
 - Unit tests for collision and audio behavior
 - Deterministic Playwright-based e2e completion test

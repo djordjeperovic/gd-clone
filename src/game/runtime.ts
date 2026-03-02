@@ -37,12 +37,19 @@ import {
   tickTrailEmitter,
   updateParticles,
 } from './particles'
+import {
+  readPersistentStats,
+  type StorageAdapter,
+  updatePersistentStatsOnCompletion,
+  writePersistentStats,
+} from './persistent-stats'
 import { renderFrame } from './renderer'
 import type { GameState, InputSnapshot, LevelObject, RunMode } from './types'
 
 interface RuntimeOptions {
   canvas: HTMLCanvasElement
   onToggleFullscreen?: () => void | Promise<void>
+  storage?: StorageAdapter
 }
 
 export interface GameRuntime {
@@ -83,13 +90,16 @@ type JumpResult =
 
 const initialPlayerY = getGroundTopAtX(START_X, typedObjects.solids, GROUND_Y) - PLAYER_SIZE
 
-const createInitialState = (): GameState => ({
+const createInitialState = (
+  persistedStats: ReturnType<typeof readPersistentStats>,
+): GameState => ({
   mode: 'menu',
   currentRunMode: 'running',
   attempt: 0,
   runElapsedSeconds: 0,
   completedRunSeconds: null,
-  bestCompletionSeconds: null,
+  bestCompletionSeconds: persistedStats.bestCompletionSeconds,
+  bestCrashCount: persistedStats.bestCrashCount,
   crashCount: 0,
   player: {
     x: START_X,
@@ -112,16 +122,36 @@ const createInitialState = (): GameState => ({
   particles: createParticleSystem(),
 })
 
+const resolveStorage = (
+  providedStorage?: StorageAdapter,
+): StorageAdapter | null => {
+  if (providedStorage) {
+    return providedStorage
+  }
+
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
 export const createGameRuntime = ({
   canvas,
   onToggleFullscreen,
+  storage: providedStorage,
 }: RuntimeOptions): GameRuntime => {
   const ctx = canvas.getContext('2d')
   if (!ctx) {
     throw new Error('2D canvas context not available.')
   }
 
-  const state = createInitialState()
+  const storage = resolveStorage(providedStorage)
+  const state = createInitialState(readPersistentStats(storage))
   const input = new InputController(canvas)
   const audio = new AudioSystem()
 
@@ -366,11 +396,21 @@ export const createGameRuntime = ({
       const completionSeconds = state.runElapsedSeconds
       state.completedRunSeconds = completionSeconds
       audio.playComplete()
-      if (
-        state.bestCompletionSeconds === null ||
-        completionSeconds < state.bestCompletionSeconds
-      ) {
-        state.bestCompletionSeconds = completionSeconds
+
+      const updatedStats = updatePersistentStatsOnCompletion(
+        {
+          bestCompletionSeconds: state.bestCompletionSeconds,
+          bestCrashCount: state.bestCrashCount,
+        },
+        completionSeconds,
+        state.crashCount,
+      )
+
+      state.bestCompletionSeconds = updatedStats.stats.bestCompletionSeconds
+      state.bestCrashCount = updatedStats.stats.bestCrashCount
+
+      if (updatedStats.didChange) {
+        writePersistentStats(storage, updatedStats.stats)
       }
     }
   }
@@ -564,6 +604,7 @@ export const createGameRuntime = ({
         state.bestCompletionSeconds === null
           ? null
           : Number(state.bestCompletionSeconds.toFixed(2)),
+      bestCrashCount: state.bestCrashCount,
       crashCount: state.crashCount,
       progressPercent: Number(state.progressPercent.toFixed(2)),
       orientationBlocked,

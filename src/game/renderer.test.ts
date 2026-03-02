@@ -33,6 +33,7 @@ const createState = (cameraX: number): GameState => ({
   runElapsedSeconds: 3.4,
   completedRunSeconds: null,
   bestCompletionSeconds: null,
+  bestCrashCount: null,
   crashCount: 0,
   player: {
     x: cameraX + 220,

@@ -489,9 +489,12 @@ const drawModeOverlay = (ctx: CanvasRenderingContext2D, state: GameState): void 
   if (state.mode === 'complete') {
     const completionTime = formatRunSeconds(state.completedRunSeconds)
     const bestTime = formatRunSeconds(state.bestCompletionSeconds)
+    const bestCrashCount =
+      state.bestCrashCount === null ? '--' : String(state.bestCrashCount)
     drawOverlayPanel(ctx, 'Level Complete!', [
       `Completion Time: ${completionTime}`,
-      `Best Time: ${bestTime}`,
+      `Best Time (Saved): ${bestTime}`,
+      `Lowest Crashes (Saved): ${bestCrashCount}`,
       `Attempts This Session: ${state.attempt}`,
       `Crashes This Session: ${state.crashCount}`,
       'Press R to restart this run.',
