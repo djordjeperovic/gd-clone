@@ -79,14 +79,12 @@ const createRuntimeForLevel = async (
   vi.doMock('./renderer', () => ({
     renderFrame: vi.fn(),
   }))
-  vi.doMock('./levelData', () => ({
-    levelData: level,
-  }))
 
   const { createGameRuntime } = await import('./runtime')
   return createGameRuntime({
     canvas: createCanvas(),
     storage,
+    level,
   })
 }
 

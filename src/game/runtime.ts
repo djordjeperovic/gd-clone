@@ -19,9 +19,9 @@ import {
 import {
   findActivatableOrb,
   findOverlappingObject,
-  getPlayerRect,
   getGroundTopAtX,
   getOverlappingTriggers,
+  getPlayerRect,
   hasSpikeCollision,
   intersects,
   isVisibleInCamera,
@@ -29,7 +29,7 @@ import {
 } from './collision'
 import { AudioSystem } from './audio'
 import { InputController } from './input'
-import { levelData } from './levelData'
+import { getLevelById, getNextLevelId, resolveLevel } from './levels'
 import {
   createParticleSystem,
   emitCrashShatter,
@@ -40,18 +40,32 @@ import {
   updateParticles,
 } from './particles'
 import {
+  readPersistentProgress,
+  writePersistentProgress,
+} from './persistent-progress'
+import {
   readPersistentStats,
   type StorageAdapter,
   updatePersistentStatsOnCompletion,
   writePersistentStats,
 } from './persistent-stats'
 import { renderFrame } from './renderer'
-import type { GameState, InputSnapshot, LevelObject, RunMode } from './types'
+import type {
+  GameState,
+  InputSnapshot,
+  LevelData,
+  LevelDefinition,
+  LevelId,
+  LevelObject,
+  RunMode,
+} from './types'
 
 interface RuntimeOptions {
   canvas: HTMLCanvasElement
   onToggleFullscreen?: () => void | Promise<void>
   storage?: StorageAdapter
+  level?: LevelData
+  levelId?: LevelId
 }
 
 export interface GameRuntime {
@@ -64,6 +78,28 @@ export interface GameRuntime {
   dispose: () => void
 }
 
+interface TypedLevelObjects {
+  solids: LevelObject[]
+  spikes: LevelObject[]
+  jumpOrbs: LevelObject[]
+  dashOrbs: LevelObject[]
+  jumpPads: LevelObject[]
+  coins: LevelObject[]
+  gravityPortals: LevelObject[]
+}
+
+interface ActiveLevel {
+  id: string
+  name: string
+  data: LevelData
+}
+
+type JumpResult =
+  | { kind: 'none' }
+  | { kind: 'jump' }
+  | { kind: 'orb'; orb: LevelObject }
+  | { kind: 'dash'; orb: LevelObject }
+
 const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value))
 }
@@ -73,60 +109,57 @@ const snapQuarterRotation = (rotationRadians: number): number => {
   return Math.round(rotationRadians / quarterTurn) * quarterTurn
 }
 
-const typedObjects = {
-  solids: levelData.objects.filter((object) => object.type === 'ground'),
-  spikes: levelData.objects.filter((object) => object.type === 'spike'),
-  jumpOrbs: levelData.objects.filter((object) => object.type === 'jumpOrb'),
-  dashOrbs: levelData.objects.filter((object) => object.type === 'dashOrb'),
-  jumpPads: levelData.objects.filter((object) => object.type === 'jumpPad'),
-  coins: levelData.objects.filter((object) => object.type === 'coin'),
-  gravityPortals: levelData.objects.filter(
-    (object) => object.type === 'gravityPortal',
-  ),
-}
-
-type JumpResult =
-  | { kind: 'none' }
-  | { kind: 'jump' }
-  | { kind: 'orb'; orb: LevelObject }
-  | { kind: 'dash'; orb: LevelObject }
-
-const initialPlayerY = getGroundTopAtX(START_X, typedObjects.solids, GROUND_Y) - PLAYER_SIZE
+const toTypedObjects = (level: LevelData): TypedLevelObjects => ({
+  solids: level.objects.filter((object) => object.type === 'ground'),
+  spikes: level.objects.filter((object) => object.type === 'spike'),
+  jumpOrbs: level.objects.filter((object) => object.type === 'jumpOrb'),
+  dashOrbs: level.objects.filter((object) => object.type === 'dashOrb'),
+  jumpPads: level.objects.filter((object) => object.type === 'jumpPad'),
+  coins: level.objects.filter((object) => object.type === 'coin'),
+  gravityPortals: level.objects.filter((object) => object.type === 'gravityPortal'),
+})
 
 const createInitialState = (
   persistedStats: ReturnType<typeof readPersistentStats>,
-): GameState => ({
-  mode: 'menu',
-  currentRunMode: 'running',
-  attempt: 0,
-  runElapsedSeconds: 0,
-  completedRunSeconds: null,
-  bestCompletionSeconds: persistedStats.bestCompletionSeconds,
-  bestCrashCount: persistedStats.bestCrashCount,
-  bestCoinCount: persistedStats.bestCoinCount,
-  crashCount: 0,
-  coinCount: 0,
-  totalCoins: typedObjects.coins.length,
-  player: {
-    x: START_X,
-    y: initialPlayerY,
-    vx: BASE_SCROLL_SPEED,
-    vy: 0,
-    size: PLAYER_SIZE,
-    rotation: 0,
-    grounded: true,
-  },
-  cameraX: 0,
-  progressPercent: 0,
-  speedMultiplier: 1,
-  gravityDirection: 1,
-  deathTimer: 0,
-  practiceCheckpoint: null,
-  activatedCheckpointTriggers: new Set<string>(),
-  activatedSpeedTriggers: new Set<string>(),
-  activatedInteractives: new Set<string>(),
-  particles: createParticleSystem(),
-})
+  level: LevelData,
+): GameState => {
+  const typedObjects = toTypedObjects(level)
+  const initialPlayerY =
+    getGroundTopAtX(START_X, typedObjects.solids, GROUND_Y) - PLAYER_SIZE
+
+  return {
+    mode: 'menu',
+    currentRunMode: 'running',
+    attempt: 0,
+    runElapsedSeconds: 0,
+    completedRunSeconds: null,
+    bestCompletionSeconds: persistedStats.bestCompletionSeconds,
+    bestCrashCount: persistedStats.bestCrashCount,
+    bestCoinCount: persistedStats.bestCoinCount,
+    crashCount: 0,
+    coinCount: 0,
+    totalCoins: typedObjects.coins.length,
+    player: {
+      x: START_X,
+      y: initialPlayerY,
+      vx: BASE_SCROLL_SPEED,
+      vy: 0,
+      size: PLAYER_SIZE,
+      rotation: 0,
+      grounded: true,
+    },
+    cameraX: 0,
+    progressPercent: 0,
+    speedMultiplier: 1,
+    gravityDirection: 1,
+    deathTimer: 0,
+    practiceCheckpoint: null,
+    activatedCheckpointTriggers: new Set<string>(),
+    activatedSpeedTriggers: new Set<string>(),
+    activatedInteractives: new Set<string>(),
+    particles: createParticleSystem(),
+  }
+}
 
 const resolveStorage = (
   providedStorage?: StorageAdapter,
@@ -146,10 +179,32 @@ const resolveStorage = (
   }
 }
 
+const createCustomLevel = (level: LevelData): ActiveLevel => ({
+  id: 'custom',
+  name: 'Custom',
+  data: level,
+})
+
+const toActiveLevel = (level: LevelDefinition): ActiveLevel => ({
+  id: level.id,
+  name: level.name,
+  data: level.data,
+})
+
+const toCampaignLevelId = (levelId: string): LevelId | null => {
+  if (levelId === 'classic' || levelId === 'floating') {
+    return levelId
+  }
+
+  return null
+}
+
 export const createGameRuntime = ({
   canvas,
   onToggleFullscreen,
   storage: providedStorage,
+  level,
+  levelId,
 }: RuntimeOptions): GameRuntime => {
   const ctx = canvas.getContext('2d')
   if (!ctx) {
@@ -157,9 +212,20 @@ export const createGameRuntime = ({
   }
 
   const storage = resolveStorage(providedStorage)
-  const state = createInitialState(readPersistentStats(storage))
+  const persistedStats = readPersistentStats(storage)
+  const resolvedLevelId =
+    levelId ?? readPersistentProgress(storage).currentLevelId
+
+  const initialLevel = level
+    ? createCustomLevel(level)
+    : toActiveLevel(resolveLevel(resolvedLevelId))
+
+  const state = createInitialState(persistedStats, initialLevel.data)
   const input = new InputController(canvas)
   const audio = new AudioSystem()
+
+  let activeLevel = initialLevel
+  let typedObjects = toTypedObjects(activeLevel.data)
 
   let running = false
   let frameHandle = 0
@@ -171,14 +237,34 @@ export const createGameRuntime = ({
     state.cameraX = clamp(
       state.player.x - PLAYER_SCREEN_X,
       0,
-      Math.max(levelData.length - INTERNAL_WIDTH, 0),
+      Math.max(activeLevel.data.length - INTERNAL_WIDTH, 0),
     )
     const travelled = Math.max(0, state.player.x - START_X)
-    const totalDistance = Math.max(1, levelData.length - START_X)
+    const totalDistance = Math.max(1, activeLevel.data.length - START_X)
     state.progressPercent = clamp((travelled / totalDistance) * 100, 0, 100)
   }
 
-  const spawnAt = (x: number, y: number, speedMultiplier: number) => {
+  const setActiveLevel = (
+    nextLevel: ActiveLevel,
+    options: { persistProgress: boolean },
+  ) => {
+    activeLevel = nextLevel
+    typedObjects = toTypedObjects(activeLevel.data)
+    state.totalCoins = typedObjects.coins.length
+    if (options.persistProgress) {
+      const campaignLevelId = toCampaignLevelId(activeLevel.id)
+      if (campaignLevelId) {
+        writePersistentProgress(storage, { currentLevelId: campaignLevelId })
+      }
+    }
+  }
+
+  const spawnAt = (
+    x: number,
+    y: number,
+    speedMultiplier: number,
+    gravityDirection: 1 | -1 = 1,
+  ) => {
     state.player.x = x
     state.player.y = y
     state.player.vx = BASE_SCROLL_SPEED * speedMultiplier
@@ -186,7 +272,7 @@ export const createGameRuntime = ({
     state.player.rotation = 0
     state.player.grounded = true
     state.speedMultiplier = speedMultiplier
-    state.gravityDirection = 1
+    state.gravityDirection = gravityDirection
     state.deathTimer = 0
     state.activatedCheckpointTriggers.clear()
     state.activatedSpeedTriggers.clear()
@@ -213,7 +299,12 @@ export const createGameRuntime = ({
     }
 
     const checkpoint = state.practiceCheckpoint
-    spawnAt(checkpoint.x, checkpoint.y, checkpoint.speedMultiplier)
+    spawnAt(
+      checkpoint.x,
+      checkpoint.y,
+      checkpoint.speedMultiplier,
+      checkpoint.gravityDirection,
+    )
   }
 
   const startFreshRun = () => {
@@ -318,7 +409,10 @@ export const createGameRuntime = ({
   }
 
   const applyTriggers = () => {
-    const overlappingTriggers = getOverlappingTriggers(state.player, levelData.triggers)
+    const overlappingTriggers = getOverlappingTriggers(
+      state.player,
+      activeLevel.data.triggers,
+    )
     for (const trigger of overlappingTriggers) {
       if (
         trigger.type === 'checkpoint' &&
@@ -326,15 +420,11 @@ export const createGameRuntime = ({
         !state.activatedCheckpointTriggers.has(trigger.id)
       ) {
         state.activatedCheckpointTriggers.add(trigger.id)
-        const checkpointGroundTop = getGroundTopAtX(
-          state.player.x + state.player.size * 0.5,
-          typedObjects.solids,
-          GROUND_Y,
-        )
         state.practiceCheckpoint = {
           x: Math.max(START_X, state.player.x),
-          y: checkpointGroundTop - state.player.size,
+          y: state.player.y,
           speedMultiplier: state.speedMultiplier,
+          gravityDirection: state.gravityDirection,
         }
         audio.playCheckpoint()
       }
@@ -346,6 +436,56 @@ export const createGameRuntime = ({
           audio.playSpeedChange(trigger.speedMultiplier)
         }
       }
+    }
+  }
+
+  const transitionToNextLevel = (nextLevelId: LevelId): void => {
+    setActiveLevel(toActiveLevel(getLevelById(nextLevelId)), { persistProgress: true })
+    state.practiceCheckpoint = null
+    state.mode = state.currentRunMode
+    state.attempt += 1
+    resetRunResults()
+    spawnAtStart()
+  }
+
+  const completeCurrentLevel = () => {
+    const campaignLevelId = toCampaignLevelId(activeLevel.id)
+    const nextLevelId = campaignLevelId ? getNextLevelId(campaignLevelId) : null
+    if (nextLevelId) {
+      transitionToNextLevel(nextLevelId)
+      return
+    }
+
+    state.mode = 'complete'
+    state.player.vx = 0
+    state.player.vy = 0
+    const completionSeconds = state.runElapsedSeconds
+    state.completedRunSeconds = completionSeconds
+    audio.playComplete()
+
+    if (state.currentRunMode === 'running') {
+      const updatedStats = updatePersistentStatsOnCompletion(
+        {
+          bestCompletionSeconds: state.bestCompletionSeconds,
+          bestCrashCount: state.bestCrashCount,
+          bestCoinCount: state.bestCoinCount,
+        },
+        completionSeconds,
+        state.crashCount,
+        state.totalCoins > 0 ? state.coinCount : null,
+      )
+
+      state.bestCompletionSeconds = updatedStats.stats.bestCompletionSeconds
+      state.bestCrashCount = updatedStats.stats.bestCrashCount
+      state.bestCoinCount = updatedStats.stats.bestCoinCount
+
+      if (updatedStats.didChange) {
+        writePersistentStats(storage, updatedStats.stats)
+      }
+    }
+
+    if (campaignLevelId) {
+      writePersistentProgress(storage, { currentLevelId: campaignLevelId })
     }
   }
 
@@ -416,34 +556,8 @@ export const createGameRuntime = ({
       return
     }
 
-    if (state.player.x >= levelData.length - state.player.size) {
-      state.mode = 'complete'
-      state.player.vx = 0
-      state.player.vy = 0
-      const completionSeconds = state.runElapsedSeconds
-      state.completedRunSeconds = completionSeconds
-      audio.playComplete()
-
-      if (state.currentRunMode === 'running') {
-        const updatedStats = updatePersistentStatsOnCompletion(
-          {
-            bestCompletionSeconds: state.bestCompletionSeconds,
-            bestCrashCount: state.bestCrashCount,
-            bestCoinCount: state.bestCoinCount,
-          },
-          completionSeconds,
-          state.crashCount,
-          state.totalCoins > 0 ? state.coinCount : null,
-        )
-
-        state.bestCompletionSeconds = updatedStats.stats.bestCompletionSeconds
-        state.bestCrashCount = updatedStats.stats.bestCrashCount
-        state.bestCoinCount = updatedStats.stats.bestCoinCount
-
-        if (updatedStats.didChange) {
-          writePersistentStats(storage, updatedStats.stats)
-        }
-      }
+    if (state.player.x >= activeLevel.data.length - state.player.size) {
+      completeCurrentLevel()
     }
   }
 
@@ -506,12 +620,7 @@ export const createGameRuntime = ({
       case 'practice':
         if (!orientationBlocked) {
           updateGameplay(dt, controls)
-          updateParticles(
-            state.particles,
-            dt,
-            state.gravityDirection,
-            state.cameraX,
-          )
+          updateParticles(state.particles, dt, state.gravityDirection, state.cameraX)
         }
         break
       case 'paused':
@@ -544,7 +653,7 @@ export const createGameRuntime = ({
   }
 
   const render = () => {
-    renderFrame({ ctx, state, level: levelData })
+    renderFrame({ ctx, state, level: activeLevel.data })
   }
 
   const frame = (timestamp: number) => {
@@ -607,10 +716,11 @@ export const createGameRuntime = ({
   })
 
   const renderGameToText = () => {
-    const visibleObjects = levelData.objects
-      .filter((object) =>
-        isVisibleInCamera(object.x, object.width, state.cameraX, INTERNAL_WIDTH) &&
-        !(object.type === 'coin' && state.activatedInteractives.has(object.id)),
+    const visibleObjects = activeLevel.data.objects
+      .filter(
+        (object) =>
+          isVisibleInCamera(object.x, object.width, state.cameraX, INTERNAL_WIDTH) &&
+          !(object.type === 'coin' && state.activatedInteractives.has(object.id)),
       )
       .slice(0, 24)
       .map(formatVisibleObject)
@@ -633,6 +743,7 @@ export const createGameRuntime = ({
     const payload = {
       coordinateSystem:
         'Origin is top-left, +x right, +y down. Values are world units in an 800x450 camera window.',
+      levelId: activeLevel.id,
       mode: state.mode,
       runMode: state.currentRunMode,
       attempt: state.attempt,

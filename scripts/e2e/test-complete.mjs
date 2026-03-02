@@ -149,6 +149,10 @@ const assertCompletionState = (state) => {
     errors.push(`Expected mode "complete", received "${state.mode}".`)
   }
 
+  if (state.levelId !== 'floating') {
+    errors.push(`Expected levelId "floating", received "${state.levelId}".`)
+  }
+
   if (
     typeof state.completedRunSeconds !== 'number' ||
     !Number.isFinite(state.completedRunSeconds)
@@ -268,6 +272,7 @@ const main = async () => {
     [
       '',
       'Completion assertions passed:',
+      `- levelId: ${state.levelId}`,
       `- mode: ${state.mode}`,
       `- completedRunSeconds: ${state.completedRunSeconds}`,
       `- bestCompletionSeconds: ${state.bestCompletionSeconds}`,

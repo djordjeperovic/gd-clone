@@ -1,7 +1,11 @@
 {
   "metadata": {
     "generatedBy": "scripts/e2e/generate-complete-actions.mjs",
-    "description": "Deterministic one-run completion trajectory for scripts/e2e/harness.html.",
+    "description": "Deterministic completion trajectory across classic then floating levels for scripts/e2e/harness.html.",
+    "levelFlow": [
+      "classic",
+      "floating"
+    ],
     "jumpFrames": [
       87,
       139,
@@ -201,7 +205,7 @@
     },
     {
       "buttons": [],
-      "frames": 120
+      "frames": 360
     }
   ]
 }

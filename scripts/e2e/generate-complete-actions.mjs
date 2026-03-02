@@ -7,7 +7,7 @@ const JUMP_FRAMES = [
   781, 820,
 ]
 
-const FINAL_SETTLE_FRAMES = 120
+const FINAL_SETTLE_FRAMES = 360
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(here, '..', '..')
@@ -34,7 +34,8 @@ export const buildActionsPayload = () => ({
   metadata: {
     generatedBy: 'scripts/e2e/generate-complete-actions.mjs',
     description:
-      'Deterministic one-run completion trajectory for scripts/e2e/harness.html.',
+      'Deterministic completion trajectory across classic then floating levels for scripts/e2e/harness.html.',
+    levelFlow: ['classic', 'floating'],
     jumpFrames: JUMP_FRAMES,
   },
   steps: buildSteps(),

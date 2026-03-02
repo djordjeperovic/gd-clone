@@ -42,6 +42,14 @@ export interface LevelData {
   triggers: LevelTrigger[]
 }
 
+export type LevelId = 'classic' | 'floating'
+
+export interface LevelDefinition {
+  id: LevelId
+  name: string
+  data: LevelData
+}
+
 export interface PlayerState {
   x: number
   y: number
@@ -56,6 +64,7 @@ export interface PracticeCheckpoint {
   x: number
   y: number
   speedMultiplier: number
+  gravityDirection: 1 | -1
 }
 
 export type ParticleKind = 'trail' | 'dust' | 'spark' | 'shard'
