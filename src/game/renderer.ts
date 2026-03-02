@@ -43,25 +43,105 @@ const formatRunSeconds = (seconds: number | null): string => {
   return `${seconds.toFixed(2)}s`
 }
 
+interface ParallaxShape {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface ParallaxLayer {
+  color: string
+  speedFactor: number
+  repeatWidth: number
+  bandY: number
+  shapes: readonly ParallaxShape[]
+}
+
+const PARALLAX_LAYERS: readonly ParallaxLayer[] = [
+  {
+    color: 'rgba(171, 214, 255, 0.08)',
+    speedFactor: 0.09,
+    repeatWidth: 420,
+    bandY: 68,
+    shapes: [
+      { x: 24, y: 0, width: 138, height: 24 },
+      { x: 188, y: 12, width: 102, height: 20 },
+      { x: 316, y: 4, width: 78, height: 22 },
+    ],
+  },
+  {
+    color: 'rgba(122, 189, 255, 0.13)',
+    speedFactor: 0.18,
+    repeatWidth: 340,
+    bandY: 138,
+    shapes: [
+      { x: 6, y: 18, width: 126, height: 28 },
+      { x: 146, y: 4, width: 82, height: 40 },
+      { x: 240, y: 20, width: 86, height: 26 },
+    ],
+  },
+  {
+    color: 'rgba(255, 206, 136, 0.16)',
+    speedFactor: 0.32,
+    repeatWidth: 280,
+    bandY: 220,
+    shapes: [
+      { x: 8, y: 22, width: 112, height: 36 },
+      { x: 132, y: 6, width: 72, height: 52 },
+      { x: 212, y: 24, width: 56, height: 34 },
+    ],
+  },
+]
+
+const positiveModulo = (value: number, modulus: number): number => {
+  const remainder = value % modulus
+  return remainder < 0 ? remainder + modulus : remainder
+}
+
+const drawParallaxLayer = (
+  ctx: CanvasRenderingContext2D,
+  cameraX: number,
+  layer: ParallaxLayer,
+): void => {
+  const offset = positiveModulo(cameraX * layer.speedFactor, layer.repeatWidth)
+  ctx.fillStyle = layer.color
+  for (
+    let tileX = -layer.repeatWidth - offset;
+    tileX < INTERNAL_WIDTH + layer.repeatWidth;
+    tileX += layer.repeatWidth
+  ) {
+    for (const shape of layer.shapes) {
+      ctx.fillRect(tileX + shape.x, layer.bandY + shape.y, shape.width, shape.height)
+    }
+  }
+}
+
 const drawBackground = (
   ctx: CanvasRenderingContext2D,
   cameraX: number,
 ): void => {
   const gradient = ctx.createLinearGradient(0, 0, 0, INTERNAL_HEIGHT)
-  gradient.addColorStop(0, '#12356e')
-  gradient.addColorStop(0.55, '#0b1f48')
-  gradient.addColorStop(1, '#08142f')
+  gradient.addColorStop(0, '#153872')
+  gradient.addColorStop(0.56, '#0d224d')
+  gradient.addColorStop(1, '#081533')
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT)
 
-  const stripeOffset = (cameraX * 0.2) % 120
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.06)'
-  for (let x = -120 - stripeOffset; x < INTERNAL_WIDTH + 120; x += 120) {
-    ctx.fillRect(x, 70, 56, 6)
+  ctx.fillStyle = 'rgba(164, 206, 255, 0.07)'
+  ctx.fillRect(0, 34, INTERNAL_WIDTH, 132)
+
+  for (const layer of PARALLAX_LAYERS) {
+    drawParallaxLayer(ctx, cameraX, layer)
   }
 
-  ctx.fillStyle = 'rgba(255, 208, 120, 0.13)'
-  ctx.fillRect(0, INTERNAL_HEIGHT - 92, INTERNAL_WIDTH, 92)
+  ctx.fillStyle = 'rgba(116, 171, 235, 0.08)'
+  ctx.fillRect(0, 196, INTERNAL_WIDTH, 70)
+
+  ctx.fillStyle = 'rgba(255, 208, 120, 0.12)'
+  ctx.fillRect(0, INTERNAL_HEIGHT - 104, INTERNAL_WIDTH, 104)
+  ctx.fillStyle = 'rgba(255, 236, 183, 0.18)'
+  ctx.fillRect(0, INTERNAL_HEIGHT - 104, INTERNAL_WIDTH, 2)
 }
 
 const drawGroundAndObjects = (
